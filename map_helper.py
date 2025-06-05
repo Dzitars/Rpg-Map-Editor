@@ -33,17 +33,13 @@ def save_map(path: Path,
              map_height: int,
              tile_size: int,
              ground_ts: str,
-             ground_tpr: int,
-             overlay_ts: str,
-             overlay_tpr: int):
+             overlay_ts: str):
     out = {
         "tile_size":  tile_size,
         "map_width":   map_width,
         "map_height":  map_height,
         "ground_tileset":     ground_ts,
-        "ground_tiles_per_row": ground_tpr,
         "overlay_tileset":    overlay_ts,
-        "overlay_tiles_per_row": overlay_tpr,
         "ground_data":  ground,
         "overlay_data": overlay,
     }

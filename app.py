@@ -51,10 +51,6 @@ class App(ttk.Window):
         self.ground_tileset_button = ttk.Button(self.ground_tileset_frame, text="Browse", command=self.choose_ground_tileset, style="browse.TButton")
         self.ground_tileset_button.pack(side=LEFT)
 
-        ttk.Label(self.frame2, text="Ground Tiles Per Row").pack(anchor=W)
-        self.ground_tiles_per_row_entry = ttk.Entry(self.frame2, validate="key", validatecommand=(self.validation, '%S'))
-        self.ground_tiles_per_row_entry.pack(fill=X, expand=True)
-
         ttk.Label(self.frame2, text="Overlay Tileset").pack(anchor=W)
         self.overlay_tileset_frame = ttk.Frame(self.frame2)
         self.overlay_tileset_frame.pack(fill=X, expand=True)
@@ -62,10 +58,6 @@ class App(ttk.Window):
         self.overlay_tileset_entry.pack(side=LEFT, fill=X, expand=True)
         self.overlay_tileset_button = ttk.Button(self.overlay_tileset_frame, text="Browse", command=self.choose_overlay_tileset, style="browse.TButton")
         self.overlay_tileset_button.pack(side=LEFT)
-
-        ttk.Label(self.frame2, text="Overlay Tiles Per Row").pack(anchor=W)
-        self.overlay_tiles_per_row_entry = ttk.Entry(self.frame2, validate="key", validatecommand=(self.validation, '%S'))
-        self.overlay_tiles_per_row_entry.pack(fill=X, expand=True)
 
         self.load_editor_button = ttk.Button(self.frame2, text="Load Editor", command=self.load_editor)
         self.load_editor_button.pack(pady=10)
@@ -122,9 +114,7 @@ class App(ttk.Window):
         self.map_width_entry.insert(0, map_data["map_width"])
         self.map_height_entry.insert(0, map_data["map_height"])
         self.ground_tileset_entry.insert(0, map_data["ground_tileset"])
-        self.ground_tiles_per_row_entry.insert(0, map_data["ground_tiles_per_row"])
         self.overlay_tileset_entry.insert(0, map_data["overlay_tileset"])
-        self.overlay_tiles_per_row_entry.insert(0, map_data["overlay_tiles_per_row"])
 
         for widget in self.frame2.winfo_children():
             if widget.winfo_class() == "TEntry":
@@ -144,9 +134,7 @@ class App(ttk.Window):
             self.map_width_entry.get() != "",
             self.map_height_entry.get() != "",
             self.ground_tileset_entry.get() != "",
-            self.ground_tiles_per_row_entry.get() != "",
-            self.overlay_tileset_entry.get() != "",
-            self.overlay_tiles_per_row_entry.get() != ""
+            self.overlay_tileset_entry.get() != ""
         ]
 
         return False in validation_rules
@@ -170,15 +158,13 @@ class App(ttk.Window):
                 "map_width":   int(self.map_width_entry.get()),
                 "map_height":  int(self.map_height_entry.get()),
                 "ground_tileset":     self.ground_tileset_entry.get(),
-                "ground_tiles_per_row": int(self.ground_tiles_per_row_entry.get()),
                 "overlay_tileset":    self.overlay_tileset_entry.get(),
-                "overlay_tiles_per_row": int(self.overlay_tiles_per_row_entry.get()),
                 "ground_data":  [],
                 "overlay_data": [],
             }
 
         save_map(path, self.map_data["ground_data"], self.map_data["overlay_data"], self.map_data["map_width"], self.map_data["map_height"], self.map_data["tile_size"], self.map_data["ground_tileset"],
-                 self.map_data["ground_tiles_per_row"], self.map_data["overlay_tileset"], self.map_data["overlay_tiles_per_row"])
+                 self.map_data["overlay_tileset"])
 
         self.withdraw()
 
