@@ -1,31 +1,3 @@
-<style>
-    * {
-      box-sizing: border-box;
-    }
-    .row {
-      margin-left:-5px;
-      margin-right:-5px;
-    }
-    .column {
-      float: left;
-      width: 40%;
-      padding: 5px;
-    }
-    /* Clearfix (clear floats) */
-    .row::after {
-      content: "";
-      clear: both;
-      display: table;
-    }
-    th, td {
-      text-align: left;
-      padding: 16px;
-    }
-    td:first-child {
-        font-weight: bold
-    }
-</style>
-
 <h1>Instructions for Use:</h1>
 
 <h2>1. New or Load</h2>
@@ -65,8 +37,9 @@
 <p>While editing map, the M key can be pressed to toggle between editing the map or editing the tileset metadata, <br>
 and the control scheme changes slightly between each</p>
 
-<div class="row">
-    <div class="column">
+<table>
+  <tr>
+    <td valign="top">
         <h3>While editing map:</h3>
         <table>
         <tr><th>Key</th><th>Action</th></tr>
@@ -87,9 +60,10 @@ and the control scheme changes slightly between each</p>
         <tr><td>Scroll</td><td>Palette Scroll</td></tr>
         <tr><td>M</td><td>Toggle Edit Mode</td></tr>
         </table>
-    </div>
-    <div class="column">
-        <h3>While editing metadata:<br></h3>
+    </td>
+    <td style="width: 40px;"></td>
+    <td valign="top">
+        <h3>While editing metadata:</h3>
         <table>
         <tr><th>Key</th><th>Action</th></tr>
         <tr><td>M</td><td>Switch back to Map Mode</td></tr>
@@ -99,8 +73,9 @@ and the control scheme changes slightly between each</p>
         <tr><td>-</td><td>Decrease number metadata</td></tr>
         <tr><td>Backspace</td><td>Remove current metadata</td></tr>
         </table>
-    </div>
-</div>
+    </td>
+  </tr>
+</table>
 
 <div>
     <h2>Regarding MetaData</h2>
