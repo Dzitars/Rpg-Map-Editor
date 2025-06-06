@@ -47,8 +47,6 @@ and the control scheme changes slightly between each</p>
         <tr><td>TAB</td><td>Switch Layer</td></tr>
         <tr><td>G</td><td>Toggle Grid</td></tr>
         <tr><td>S</td><td>Save Map</td></tr>
-        <tr><td>L</td><td>Load Map</td></tr>
-        <tr><td>N</td><td>New Map</td></tr>
         <tr><td>1-6</td><td>Brush Size</td></tr>
         <tr><td>F</td><td>Fill Layer</td></tr>
         <tr><td>C</td><td>Clear Layer</td></tr>

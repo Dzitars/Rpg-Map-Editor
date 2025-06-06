@@ -2,12 +2,6 @@ from pathlib import Path
 from typing import List, Tuple
 import pygame
 import json
-import tkinter as tk
-from tkinter import filedialog
-
-# ─────────────────────────────────────────────
-# BASIC HELPERS
-# ─────────────────────────────────────────────
 
 def load_tileset(image_path: Path, tile_size: int) -> Tuple[List[pygame.Surface], int]:
     image = pygame.image.load(str(image_path)).convert_alpha()
@@ -50,9 +44,3 @@ def save_map(path: Path,
 def load_map(path: Path) -> dict:
     with open(path, encoding="utf-8") as f:
         return json.load(f)
-
-def get_file_dialog_path(save: bool = False, filetypes=[("JSON files", "*.json")]) -> Path | None:
-    root = tk.Tk()
-    root.withdraw()
-    path = filedialog.asksaveasfilename(filetypes=filetypes) if save else filedialog.askopenfilename(filetypes=filetypes)
-    return Path(path) if path else None

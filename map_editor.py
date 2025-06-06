@@ -10,15 +10,14 @@ SCREEN_BG        = (30, 30, 30)
 GRID_COLOR       = (80, 80, 80)
 HIGHLIGHT_COL    = (255, 255, 0)
 PALETTE_BG       = (50, 50, 50)
+FONT_COLOR       = (255,255,255)
 EDITOR_SIZE      = (1280, 720)
 LEGEND_FONT      = "consolas"
 LEGEND_FONT_SIZE = 16
 
 KEY_SWITCH_LAYER = pygame.K_TAB
 KEY_TOGGLE_GRID  = pygame.K_g
-KEY_NEW_MAP      = pygame.K_n
 KEY_SAVE_MAP     = pygame.K_s
-KEY_LOAD_MAP     = pygame.K_l
 KEY_TOGGLE_HELP  = pygame.K_h
 KEY_FILL         = pygame.K_f
 KEY_CLEAR        = pygame.K_c
@@ -31,9 +30,6 @@ LAYER_LOOKUP = [
     "Overlay"
 ]
 
-# ─────────────────────────────────────────────
-# MAP EDITOR CLASS
-# ─────────────────────────────────────────────
 class MapEditor:
     def __init__(self, map_data, map_file: Path):
         pygame.init()
@@ -146,12 +142,12 @@ class MapEditor:
             f"Brush Size - {self.brush_size}"
         ]
         for i, line in enumerate(lines):
-            text = self.legend_font.render(line, True, (255, 255, 255))
+            text = self.legend_font.render(line, True, FONT_COLOR)
             self.screen.blit(text, (self.screen_w - text.get_width() - 10, 10 + i*18))
 
     def draw_edit_mode(self):
         line = f"Editing: Metadata[{self.metadata_fields[self.current_metadata_field]}]" if self.editing_metadata else f"Editing: Map"
-        text = self.legend_font.render(line, True, (255, 255, 255))
+        text = self.legend_font.render(line, True, FONT_COLOR)
         palette_width = self.tile_size * max(self.ground_tpr, self.overlay_tpr)
         self.screen.blit(text, (palette_width - text.get_width(), self.palette_y - 25))
 
@@ -171,7 +167,7 @@ class MapEditor:
             value = meta.get(field, None)
             if value is not None:
                 is_current = (i == self.current_metadata_field)
-                color = (255, 255, 0) if is_current else (255, 255, 255)
+                color = (255, 255, 0) if is_current else FONT_COLOR
                 label = f"{field}: {value}"
                 text = self.legend_font.render(label, True, color)
                 self.screen.blit(text, (x, y))
@@ -179,7 +175,7 @@ class MapEditor:
 
     def draw_legend(self):
         if not self.show_help:
-            text = self.legend_font.render("H - Toggle Help", True, (255, 255, 255))
+            text = self.legend_font.render("H - Toggle Help", True, FONT_COLOR)
             self.screen.blit(text, (10, 10))
             return
         lines = [
@@ -187,8 +183,6 @@ class MapEditor:
             "TAB - Switch Layer",
             "G - Toggle Grid",
             "S - Save Map",
-            "L - Load Map",
-            "N - New Map",
             "1-6 - Brush Size",
             "F - Fill Layer",
             "C - Clear Layer",
@@ -211,9 +205,6 @@ class MapEditor:
         tiles_per_col = len(tileset) // self.get_active_tpr()
         max_offset = max(0, tiles_per_col - PALETTE_ROWS)
         self.palette_off = max(0, min(max_offset, self.palette_off + direction))
-
-    def get_active_data(self) -> List[List[int]]:
-        return self.overlay_data if self.active_layer else self.ground_data
 
     def get_active_tpr(self) -> int:
         return self.overlay_tpr if self.active_layer else self.ground_tpr
@@ -370,24 +361,8 @@ class MapEditor:
                         self.selected = 0
                         self.palette_off = 0
                     elif ev.key == KEY_SAVE_MAP:
-                        path = self.current_file or get_file_dialog_path(save=True)
-                        if path:
-                            save_map(path, self.ground_data, self.overlay_data, self.map_w, self.map_h, self.tile_size,
-                                     self.ground_ts, self.ground_tpr,
-                                     self.overlay_ts, self.overlay_tpr)
-                            self.current_file = path
-                    elif ev.key == KEY_LOAD_MAP:
-                        path = get_file_dialog_path() or self.current_file
-                        if path and path.exists():
-                            m                 = load_map(path)
-                            self.ground_data  = m["ground_data"]
-                            self.overlay_data = m["overlay_data"]
-                            self.map_w        = m["map_width"]
-                            self.map_h        = m["map_height"]
-                            self.current_file = path
-                    elif ev.key == KEY_NEW_MAP:
-                        self.ground_data = blank_layer(self.map_w, self.map_h)
-                        self.overlay_data = blank_layer(self.map_w, self.map_h)
+                            save_map(self.current_file, self.ground_data, self.overlay_data, self.map_w, self.map_h,
+                                     self.tile_size, self.ground_ts, self.overlay_ts)
                     elif ev.key == KEY_TOGGLE_GRID:
                         self.show_grid ^= True
                     elif ev.key == KEY_FILL:
