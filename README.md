@@ -23,6 +23,7 @@
 <tr>
     <td>Layers</td><td>Add as many layers as you would like and select a PNG tileset file for each</td>
 </tr>
+</table>
 
 <h2>3. Load The Editor</h2>
 <p>
