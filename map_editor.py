@@ -1,5 +1,6 @@
 from collections import deque
 from map_helper import *
+from typing import List
 
 # ─────────────────────────────────────────────────
 # CONFIGURATION CONSTANTS
@@ -25,11 +26,6 @@ KEY_EDIT_META    = pygame.K_m
 KEY_NUM_UP       = [pygame.K_KP_PLUS, pygame.K_PLUS]
 KEY_NUM_DOWN     = [pygame.K_KP_PLUS, pygame.K_MINUS]
 
-LAYER_LOOKUP = [
-    "Ground",
-    "Overlay"
-]
-
 class MapEditor:
     def __init__(self, map_data, map_file: Path):
         pygame.init()
@@ -41,8 +37,17 @@ class MapEditor:
         self.tile_size = map_data["tile_size"]
         self.map_w = map_data["map_width"]
         self.map_h = map_data["map_height"]
-        self.ground_data = map_data["ground_data"]
-        self.overlay_data = map_data["overlay_data"]
+
+        self.layer_data = map_data["layers"]
+
+        self.tilesets: List[List[pygame.Surface]] = []
+        self.tileset_tpr: List[int] = []
+        for val in map_data["tilesets"]:
+            tileset, tpr = load_tileset(val, self.tile_size)
+            self.tilesets.append(tileset)
+            self.tileset_tpr.append(tpr)
+
+        self.layers = map_data["layers"]
         self.current_file = map_file
         self.brush_size = 1
 
@@ -74,18 +79,14 @@ class MapEditor:
         self.metadata_path = None
         self.editing_metadata = False
 
-        self.ground_tileset, self.ground_tpr = load_tileset(map_data["ground_tileset"], self.tile_size)
-        self.overlay_tileset, self.overlay_tpr = load_tileset(map_data["overlay_tileset"], self.tile_size)
 
-
-        meta_path = Path(map_data["ground_tileset"]).with_suffix(".json")
+        meta_path = Path(map_data["tilesets"][0]).with_suffix(".json")
         if meta_path.exists():
             self.load_tile_metadata(meta_path)
         else:
             self.metadata_path = meta_path
 
-        self.ground_ts = map_data["ground_tileset"]
-        self.overlay_ts = map_data["overlay_tileset"]
+        self.tileset_names = map_data["tilesets"]
 
     def load_tile_metadata(self, path):
         with open(path, "r", encoding="utf-8") as f:
@@ -98,7 +99,7 @@ class MapEditor:
             return
         data = {
             "tile_size": self.tile_size,
-            "tiles_per_row": self.ground_tpr,
+            "tiles_per_row": self.tileset_tpr[0],
             "tiles": self.tile_metadata
         }
         with open(self.metadata_path, "w", encoding="utf-8") as f:
@@ -133,7 +134,7 @@ class MapEditor:
 
     def draw_current_layer(self):
         lines = [
-            f"Layer - {LAYER_LOOKUP[self.active_layer]}",
+            f"Layer - {self.active_layer}",
             f"Brush Size - {self.brush_size}"
         ]
         for i, line in enumerate(lines):
@@ -143,7 +144,7 @@ class MapEditor:
     def draw_edit_mode(self):
         line = f"Editing: Metadata[{self.metadata_fields[self.current_metadata_field]}]" if self.editing_metadata else f"Editing: Map"
         text = self.legend_font.render(line, True, FONT_COLOR)
-        palette_width = self.tile_size * max(self.ground_tpr, self.overlay_tpr)
+        palette_width = self.tile_size * max(self.tileset_tpr)
         self.screen.blit(text, (palette_width - text.get_width(), self.palette_y - 25))
 
     def draw_metadata_info(self):
@@ -185,15 +186,15 @@ class MapEditor:
             "Ctrl + Y - Redo",
             "Mouse Left - Paint",
             "Mouse Right - Erase",
-            "Scroll - Palette Scroll",
-            f"{LAYER_LOOKUP[self.active_layer]}"
+            "Scroll - Palette Scroll"
         ]
         for i, line in enumerate(lines):
             text = self.legend_font.render(line, True, (255, 255, 255))
             self.screen.blit(text, (10, 10 + i * 18))
 
     def get_active_tileset(self) -> Tuple[List[pygame.Surface], int]:
-        return (self.overlay_tileset, self.overlay_tpr) if self.active_layer else (self.ground_tileset, self.ground_tpr)
+        return self.tilesets[self.active_layer], self.tileset_tpr[self.active_layer]
+        # return (self.overlay_tileset, self.overlay_tpr) if self.active_layer else (self.ground_tileset, self.ground_tpr)
 
     def scroll_palette(self, direction: int):
         tileset, _ = self.get_active_tileset()
@@ -202,7 +203,8 @@ class MapEditor:
         self.palette_off = max(0, min(max_offset, self.palette_off + direction))
 
     def get_active_tpr(self) -> int:
-        return self.overlay_tpr if self.active_layer else self.ground_tpr
+        return self.tileset_tpr[self.active_layer]
+        # return self.overlay_tpr if self.active_layer else self.ground_tpr
 
     def draw_map(self):
         for y in range(self.map_h):
@@ -216,12 +218,19 @@ class MapEditor:
                 if y + self.tile_size < 0 or y > self.screen.get_height():
                     continue
 
-                gid = self.ground_data[y][x]
-                if gid >= 0:
-                    self.screen.blit(self.ground_tileset[gid], (gx, gy))
-                oid = self.overlay_data[y][x]
-                if oid >= 0:
-                    self.screen.blit(self.overlay_tileset[oid], (gx, gy))
+
+                for idx, layer in enumerate(self.layers):
+                    id = layer[y][x]
+                    if id >= 0:
+                        self.screen.blit(self.tilesets[idx][id], (gx, gy))
+
+
+
+                # if gid >= 0:
+                #     self.screen.blit(self.ground_tileset[gid], (gx, gy))
+                # oid = self.overlay_data[y][x]
+                # if oid >= 0:
+                #     self.screen.blit(self.overlay_tileset[oid], (gx, gy))
                 if self.show_grid:
                     pygame.draw.rect(self.screen, GRID_COLOR, (gx, gy, self.tile_size, self.tile_size), 1)
 
@@ -296,22 +305,17 @@ class MapEditor:
                     r = row + dy
                     c = col + dx
                     if 0 <= r < self.screen_h and 0 <= c < self.screen_w:
-                        if self.active_layer == 0:
-                            self.ground_data[r][c] = -1 if erase else self.selected
-                        else:
-                            self.overlay_data[r][c] = -1 if erase else self.selected
+                        self.layers[self.active_layer][r][c] = -1 if erase else self.selected
 
     def snapshot(self):
         return {
-            "ground": [row[:] for row in self.ground_data],
-            "overlay": [row[:] for row in self.overlay_data],
+            "layers": [ [row[:] for row in layer] for layer in self.layers ],
             "layer": self.active_layer,
             "selected": self.selected,
         }
 
     def apply_snapshot(self, snap):
-        self.ground_data = [row[:] for row in snap["ground"]]
-        self.overlay_data = [row[:] for row in snap["overlay"]]
+        self.layers = [ [row[:] for row in layer] for layer in snap["layers"] ]
         self.active_layer = snap["layer"]
         self.selected = snap["selected"]
 
@@ -352,30 +356,23 @@ class MapEditor:
                         elif ev.key == pygame.K_BACKSPACE:
                             self.clear_metadata(self.selected)
                     elif ev.key == KEY_SWITCH_LAYER:
-                        self.active_layer = 1 - self.active_layer
+                        self.active_layer = (self.active_layer + 1) % len(self.layers)
                         self.selected = 0
                         self.palette_off = 0
                     elif ev.key == KEY_SAVE_MAP:
-                            save_map(self.current_file, self.ground_data, self.overlay_data, self.map_w, self.map_h,
-                                     self.tile_size, self.ground_ts, self.overlay_ts)
+                            save_map(self.current_file, self.layers, self.map_w, self.map_h, self.tile_size, self.tileset_names)
                     elif ev.key == KEY_TOGGLE_GRID:
                         self.show_grid ^= True
                     elif ev.key == KEY_FILL:
                         if not self.undo_stack or self.snapshot() != self.undo_stack[-1]:
                             self.undo_stack.append(self.snapshot())
                             self.redo_stack.clear()
-                        if self.active_layer == 0:
-                            self.ground_data = fill_layer(self.map_w, self.map_h, self.selected)
-                        elif self.active_layer == 1:
-                            self.overlay_data = fill_layer(self.map_w, self.map_h, self.selected)
+                        self.layers[self.active_layer] = fill_layer(self.map_w, self.map_h, self.selected)
                     elif ev.key == KEY_CLEAR:
                         if not self.undo_stack or self.snapshot() != self.undo_stack[-1]:
                             self.undo_stack.append(self.snapshot())
                             self.redo_stack.clear()
-                        if self.active_layer == 0:
-                            self.ground_data = blank_layer(self.map_w, self.map_h)
-                        elif self.active_layer == 1:
-                            self.overlay_data = blank_layer(self.map_w, self.map_h)
+                        self.layers[self.active_layer] = blank_layer(self.map_w, self.map_h)
 
                     elif ev.key == pygame.K_DOWN:
                         self.scroll_palette(1)

@@ -21,21 +21,17 @@ def fill_layer(w: int, h: int, tileid: int) -> List[List[int]]:
     return [[tileid for _ in range(w)] for _ in range(h)]
 
 def save_map(path: Path,
-             ground: List[List[int]],
-             overlay: List[List[int]],
+             layers: List[List[List[int]]],
              map_width: int,
              map_height: int,
              tile_size: int,
-             ground_ts: str,
-             overlay_ts: str):
+             tilesets: list):
     out = {
         "tile_size":  tile_size,
         "map_width":   map_width,
         "map_height":  map_height,
-        "ground_tileset":     ground_ts,
-        "overlay_tileset":    overlay_ts,
-        "ground_data":  ground,
-        "overlay_data": overlay,
+        "tilesets": tilesets,
+        "layers":  layers
     }
     with open(path, "w", encoding="utf-8") as f:
         json.dump(out, f, indent=2)

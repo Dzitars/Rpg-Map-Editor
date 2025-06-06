@@ -21,12 +21,8 @@
     <td>Map Height</td><td>The height of your desired map, in number of tiles</td>
 </tr>
 <tr>
-    <td>Ground Tileset</td><td>A png image to use as a tileset for your ground layer</td>
+    <td>Layers</td><td>Add as many layers as you would like and select a PNG tileset file for each</td>
 </tr>
-<tr>
-    <td>Overlay Tileset</td><td>A png image to use as a tileset for your overlay layer</td>
-</tr>
-</table>
 
 <h2>3. Load The Editor</h2>
 <p>
