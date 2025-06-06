@@ -87,11 +87,6 @@ class MapEditor:
         self.ground_ts = map_data["ground_tileset"]
         self.overlay_ts = map_data["overlay_tileset"]
 
-        if len(map_data["ground_data"]) == 0:
-            self.ground_data = blank_layer(self.map_w, self.map_h)
-        if len(map_data["overlay_data"]) == 0:
-            self.overlay_data = blank_layer(self.map_w, self.map_h)
-
     def load_tile_metadata(self, path):
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)

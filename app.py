@@ -4,7 +4,7 @@ import tkinter.messagebox as mb
 from ttkbootstrap.constants import *
 from pathlib import Path
 from map_editor import MapEditor
-from map_helper import load_map, save_map
+from map_helper import load_map, save_map, blank_layer
 
 class App(ttk.Window):
     def __init__(self):
@@ -153,14 +153,16 @@ class App(ttk.Window):
             path = Path(self.map_file_entry.get())
 
         if self.is_new_map:
+            map_w = int(self.map_width_entry.get())
+            map_h = int(self.map_height_entry.get())
             self.map_data = {
                 "tile_size":  int(self.tile_size_entry.get()),
-                "map_width":   int(self.map_width_entry.get()),
-                "map_height":  int(self.map_height_entry.get()),
+                "map_width":  map_w,
+                "map_height": map_h,
                 "ground_tileset":     self.ground_tileset_entry.get(),
                 "overlay_tileset":    self.overlay_tileset_entry.get(),
-                "ground_data":  [],
-                "overlay_data": [],
+                "ground_data":  blank_layer(map_w, map_h),
+                "overlay_data": blank_layer(map_w, map_h)
             }
 
         save_map(path, self.map_data["ground_data"], self.map_data["overlay_data"], self.map_data["map_width"], self.map_data["map_height"], self.map_data["tile_size"], self.map_data["ground_tileset"],
