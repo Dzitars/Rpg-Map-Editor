@@ -179,7 +179,6 @@ class App(ttk.Window):
 
     def load_editor(self):
         # Save map file then load
-
         if self.validate_fields():
             mb.showerror(message="Please ensure all required fields are entered.")
             return

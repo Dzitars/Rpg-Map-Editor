@@ -37,17 +37,23 @@ class MapEditor:
         self.tile_size = map_data["tile_size"]
         self.map_w = map_data["map_width"]
         self.map_h = map_data["map_height"]
-
-        self.layer_data = map_data["layers"]
+        self.layers = map_data["layers"]
+        self.layer_tileset_paths = map_data["tilesets"]
 
         self.tilesets: List[List[pygame.Surface]] = []
         self.tileset_tpr: List[int] = []
-        for val in map_data["tilesets"]:
-            tileset, tpr = load_tileset(val, self.tile_size)
+        self.tile_metadata_by_layer = []
+        self.tileset_metadata_map = {}
+
+        for path in map_data["tilesets"]:
+            tileset, metadata, tpr = load_tileset_and_metadata(path, self.tile_size)
             self.tilesets.append(tileset)
             self.tileset_tpr.append(tpr)
+            self.tileset_metadata_map[path] = metadata
+            self.tile_metadata_by_layer.append(self.tileset_metadata_map[path])
 
-        self.layers = map_data["layers"]
+        print(self.tileset_metadata_map)
+
         self.current_file = map_file
         self.brush_size = 1
 
@@ -76,61 +82,63 @@ class MapEditor:
         self.current_metadata_field = 0  # index into metadata_fields
 
         self.tile_metadata = {}  # tile_index -> dict
-        self.metadata_path = None
         self.editing_metadata = False
 
+    def save_all_metadata(self):
+        # Keep track of which paths we’ve saved already
+        saved_paths = set()
 
-        meta_path = Path(map_data["tilesets"][0]).with_suffix(".json")
-        if meta_path.exists():
-            self.load_tile_metadata(meta_path)
-        else:
-            self.metadata_path = meta_path
+        for i, path in enumerate(self.layer_tileset_paths):
+            path_str = str(path)
+            if path_str in saved_paths:
+                continue  # already saved this tileset's metadata
 
-        self.tileset_names = map_data["tilesets"]
+            metadata = self.tileset_metadata_map.get(path_str)
+            print(self.tileset_metadata_map)
+            if metadata is not None:
+                meta_path = Path(path).with_suffix(".json")
+                with open(meta_path, "w", encoding="utf-8") as f:
+                    json.dump(metadata, f, indent=2)
+                print(f"Saved metadata → {meta_path}")
+                saved_paths.add(path_str)
 
-    def load_tile_metadata(self, path):
-        with open(path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-            self.tile_metadata = data.get("tiles", {})
-            self.metadata_path = Path(path)
+        self.sync_metadata_references()
 
-    def save_tile_metadata(self):
-        if not self.metadata_path:
-            return
-        data = {
-            "tile_size": self.tile_size,
-            "tiles_per_row": self.tileset_tpr[0],
-            "tiles": self.tile_metadata
-        }
-        with open(self.metadata_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2)
+    def sync_metadata_references(self):
+        """Ensure that all layers referencing the same tileset share the same metadata dict."""
+        for i, path in enumerate(self.layer_tileset_paths):
+            path_str = str(path)
+            if path_str in self.tileset_metadata_map:
+                self.tile_metadata_by_layer[i] = self.tileset_metadata_map[path_str]
 
     def toggle_metadata(self, index):
         field = self.metadata_fields[self.current_metadata_field]
         if field not in ["solid", "interactable"]:
             return
-        meta = self.tile_metadata.get(str(index), {})
-        meta[field] = not meta.get(field, False)
-        self.tile_metadata[str(index)] = meta
-        self.save_tile_metadata()
+
+        path_str = str(self.layer_tileset_paths[self.active_layer])
+        meta = self.tileset_metadata_map.setdefault(path_str, {})
+        tile_meta = meta.setdefault(index, {})
+        tile_meta[field] = not tile_meta.get(field, False)
+        self.save_all_metadata()
 
     def clear_metadata(self, index):
         field = self.metadata_fields[self.current_metadata_field]
-        if str(index) in self.tile_metadata:
-            self.tile_metadata[str(index)].pop(field, None)
-            if not self.tile_metadata[str(index)]:
-                del self.tile_metadata[str(index)]
-            self.save_tile_metadata()
+        if index in self.tile_metadata_by_layer[self.active_layer]:
+            self.tile_metadata_by_layer[self.active_layer][index].pop(field, None)
+            if not self.tile_metadata_by_layer[self.active_layer][index]:
+                del self.tile_metadata_by_layer[self.active_layer][index]
+            self.save_all_metadata()
 
     def modify_metadata(self, index, delta):
         field = self.metadata_fields[self.current_metadata_field]
         if field not in ["damage", "cost"]:
             return
-        meta = self.tile_metadata.get(str(index), {})
+        meta = self.tile_metadata_by_layer[self.active_layer].get(index, {})
         current = meta.get(field, 0)
         meta[field] = max(0, current + delta)
-        self.tile_metadata[str(index)] = meta
-        self.save_tile_metadata()
+        self.tile_metadata_by_layer[self.active_layer][index] = meta
+        self.save_all_metadata()
 
     def draw_current_layer(self):
         lines = [
@@ -148,8 +156,9 @@ class MapEditor:
         self.screen.blit(text, (palette_width - text.get_width(), self.palette_y - 25))
 
     def draw_metadata_info(self):
-        tile_id = str(self.selected)
-        meta = self.tile_metadata.get(tile_id, {})
+        tile_id = self.selected
+        path_str = str(self.layer_tileset_paths[self.active_layer])
+        meta = self.tileset_metadata_map[path_str].get(tile_id, {})
 
         x, y = 10, self.palette_y - 25
         spacing = 22
@@ -194,7 +203,6 @@ class MapEditor:
 
     def get_active_tileset(self) -> Tuple[List[pygame.Surface], int]:
         return self.tilesets[self.active_layer], self.tileset_tpr[self.active_layer]
-        # return (self.overlay_tileset, self.overlay_tpr) if self.active_layer else (self.ground_tileset, self.ground_tpr)
 
     def scroll_palette(self, direction: int):
         tileset, _ = self.get_active_tileset()
@@ -204,7 +212,6 @@ class MapEditor:
 
     def get_active_tpr(self) -> int:
         return self.tileset_tpr[self.active_layer]
-        # return self.overlay_tpr if self.active_layer else self.ground_tpr
 
     def draw_map(self):
         for y in range(self.map_h):
@@ -218,19 +225,11 @@ class MapEditor:
                 if y + self.tile_size < 0 or y > self.screen.get_height():
                     continue
 
-
                 for idx, layer in enumerate(self.layers):
                     id = layer[y][x]
                     if id >= 0:
                         self.screen.blit(self.tilesets[idx][id], (gx, gy))
 
-
-
-                # if gid >= 0:
-                #     self.screen.blit(self.ground_tileset[gid], (gx, gy))
-                # oid = self.overlay_data[y][x]
-                # if oid >= 0:
-                #     self.screen.blit(self.overlay_tileset[oid], (gx, gy))
                 if self.show_grid:
                     pygame.draw.rect(self.screen, GRID_COLOR, (gx, gy, self.tile_size, self.tile_size), 1)
 
@@ -255,8 +254,10 @@ class MapEditor:
                 self.screen.blit(tile, (x, y))
                 if i == self.selected:
                     pygame.draw.rect(self.screen, HIGHLIGHT_COL, (x, y, pw, ph), 2)
-                if str(i) in self.tile_metadata:
-                    meta = self.tile_metadata[str(i)]
+
+                path_str = str(self.layer_tileset_paths[self.active_layer])
+                if i in self.tileset_metadata_map[path_str]:
+                    meta = self.tileset_metadata_map[path_str][i]
                     if meta.get("solid"):
                         pygame.draw.rect(self.screen, (255, 0, 0), (x, y, pw, ph), 1)
                     elif meta.get("interactable"):
@@ -279,7 +280,6 @@ class MapEditor:
             self.selected = index
             if self.editing_metadata:
                 self.toggle_metadata(index)
-                self.save_tile_metadata()
             return True
 
         return False
@@ -360,7 +360,7 @@ class MapEditor:
                         self.selected = 0
                         self.palette_off = 0
                     elif ev.key == KEY_SAVE_MAP:
-                            save_map(self.current_file, self.layers, self.map_w, self.map_h, self.tile_size, self.tileset_names)
+                            save_map(self.current_file, self.layers, self.map_w, self.map_h, self.tile_size, self.layer_tileset_paths)
                     elif ev.key == KEY_TOGGLE_GRID:
                         self.show_grid ^= True
                     elif ev.key == KEY_FILL:
