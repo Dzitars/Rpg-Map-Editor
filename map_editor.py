@@ -52,8 +52,6 @@ class MapEditor:
             self.tileset_metadata_map[path] = metadata
             self.tile_metadata_by_layer.append(self.tileset_metadata_map[path])
 
-        print(self.tileset_metadata_map)
-
         self.current_file = map_file
         self.brush_size = 1
 
